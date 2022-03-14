@@ -69,7 +69,6 @@ const requsetListener = (req, res) => {
         } else {
           handler.error(res)
         }
-        res.end()
       } catch {
         handler.error(res)
       }
