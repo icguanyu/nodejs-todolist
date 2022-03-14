@@ -1,124 +1,84 @@
-const { v4: uuidv4 } = require('uuid')
-const errorHandle = require('./errorHandle')
 const http = require('http')
-// http.createServer((request, response) => {
-//   console.log('request:', request);
-//   response.writeHead(200, { "Content-Type": 'text/plain' });
-//   response.write('Hello~!')
-//   response.end()
-// }).listen(8080)
-
+const { v4: uuidv4 } = require('uuid')
+const handler = require('./const')
+const dayjs = require('dayjs')
 
 const todos = [
   {
-    title: '測試',
+    title: '預設的資料',
+    createTime: dayjs().format('YYYY/MM/DD HH:mm:ss'), //  第三方外掛測試
+    lastUpdateTime: '',
     id: uuidv4()
   }
 ]
 
 const requsetListener = (req, res) => {
-
-  const headers = {
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, Content-Length, X-Requested-With',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'PATCH, POST, GET,OPTIONS,DELETE',
-    'Content-Type': 'application/json'
-  }
-
+  const time = dayjs().format('YYYY/MM/DD HH:mm:ss') // 要放在 requsetListener 內
   let data = ''
-
-  req.on('data', chunk => {
+  req.on('data', chunk => {// POST & PATCH 取得封包
     data += chunk
   })
 
-  if (req.url == '/todos' && req.method == 'GET') {
-    // todos - GET
-    res.writeHead(200, headers)
-    res.write(JSON.stringify({
-      status: 'success',
-      data: todos
-    }))
-    res.end()
-  } else if (req.url == '/todos' && req.method == 'POST') {// todos - POST
-
+  if (req.url == '/todos' && req.method == 'GET') {// GET
+    handler.success(res, todos)
+  } else if (req.url == '/todos' && req.method == 'POST') {// POST
     req.on('end', () => {
       try {
-        const title = JSON.parse(data).title
+        const title = JSON.parse(data).title // 前端只須給 title
         if (title !== undefined) {
           const obj = {
+            id: uuidv4(),
             title: title,
-            id: uuidv4()
+            createTime: time, // 後端紀錄時間
+            lastUpdateTime: '',
+            isDone: false
           }
           todos.push(obj)
-          res.writeHead(200, headers)
-          res.write(JSON.stringify({
-            status: 'success',
-            data: todos
-          }))
-          res.end()
+          handler.success(res, todos)
         } else {
-          errorHandle(res)
+          handler.error(res)
         }
       } catch (error) {
-        errorHandle(res)
+        handler.error(res)
       }
-
     })
-  } else if (req.url == '/todos' && req.method == 'DELETE') { // todos - DELETE ALL
+  } else if (req.url == '/todos' && req.method == 'DELETE') { // DELETE ALL
     todos.length = 0
-    res.writeHead(200, headers)
-    res.write(JSON.stringify({
-      status: 'success',
-      data: todos,
-    }))
-    res.end()
-  } else if (req.url.startsWith('/todos/') && req.method == 'DELETE') { // todos - DELETE
+    handler.success(res, todos)
+  } else if (req.url.startsWith('/todos/') && req.method == 'DELETE') { // DELETE
     const id = req.url.split('/').pop()
     let index = todos.findIndex(el => el.id == id)
-    res.writeHead(200, headers)
+
     if (index !== -1) {
       todos.splice(index, 1)
-      res.write(JSON.stringify({
-        status: 'success',
-        data: todos,
-      }))
-      res.end()
+      handler.success(res, todos)
     } else {
-      errorHandle(res)
+      handler.error(res)
     }
 
-  } else if (req.url.startsWith('/todos/') && req.method == 'PATCH') {
-
+  } else if (req.url.startsWith('/todos/') && req.method == 'PATCH') { // PATCH
     req.on('end', () => {
       try {
-        const todo = JSON.parse(data).title
+        const { title } = JSON.parse(data)
         const id = req.url.split('/').pop()
         const index = todos.findIndex(el => el.id == id)
-
-        if (todo !== undefined && index !== -1) {
-          todos[index].title = todo
-          res.writeHead(200, headers)
-          res.write(JSON.stringify({
-            status: 'success',
-            data: todos,
-          }))
+        if (title !== undefined && index !== -1) {
+          todos[index].title = title
+          todos[index].lastUpdateTime = time
+          handler.success(res, todos)
         } else {
-          errorHandle(res)
+          handler.error(res)
         }
         res.end()
       } catch {
-        errorHandle(res)
+        handler.error(res)
       }
     })
-
-  }
-  else {
+  } else {
     res.writeHead(404, headers)
-    res.write('Not found!')
+    res.write('404 Not found!')
     res.end()
   }
-
-
 }
 const server = http.createServer(requsetListener)
 server.listen(process.env.PORT || 8080)
