@@ -22,19 +22,33 @@ const requsetListener = (req, res) => {
   if (req.url == '/todos' && req.method == 'GET') {// GET
     handler.success(res, todos)
   } else if (req.url == '/todos' && req.method == 'POST') {// POST
+    // req.on('end', () => {
+    //   try {
+    //     const title = JSON.parse(data).title // 前端只須給 title
+    //     if (title !== undefined) {
+    //       const obj = {
+    //         id: uuidv4(),
+    //         title: title,
+    //         createTime: time, // 後端紀錄時間
+    //         lastUpdateTime: '',
+    //         isDone: false
+    //       }
+    //       todos.push(obj)
+    //       handler.success(res, todos)
+    //     } else {
+    //       handler.error(res)
+    //     }
+    //   } catch (error) {
+    //     handler.error(res)
+    //   }
+    // })
+    //
     req.on('end', () => {
       try {
-        const title = JSON.parse(data).title // 前端只須給 title
-        if (title !== undefined) {
-          const obj = {
-            id: uuidv4(),
-            title: title,
-            createTime: time, // 後端紀錄時間
-            lastUpdateTime: '',
-            isDone: false
-          }
-          todos.push(obj)
-          handler.success(res, todos)
+        const id = JSON.parse(data).id // 前端給 id 想取得指定資料
+        if (id !== undefined) {
+          let target = todos.find(el => el.id == id)
+          handler.success(res, target)
         } else {
           handler.error(res)
         }
